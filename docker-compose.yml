@@ -1,0 +1,79 @@
+version: '2'
+
+networks:
+  web:
+    driver: "bridge"
+
+services:
+
+  # Reverse proxy: traefik
+  reverseproxy:
+    image: xamanu/traefik
+    command: "--logLevel=INFO"
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./data/cert:/cert/"
+    labels:
+      - "traefik.enable=false" # set to true to expose Monitoring & API
+      - "traefik.backend=proxy"
+      - "traefik.port=8080"
+    networks:
+      - "web"
+
+  # Matrix server: synapse
+  matrix-server:
+    build: "./build/synapse/"
+    restart: always
+    env_file: .env
+    ports:
+      - "8448:8448"
+    volumes:
+      - "./data/synapse:/data"
+      - "./data/cert:/cert/:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=matrix-server"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.frontend.rule=Host:$MATRIX_SERVER_URL;PathPrefix:/_matrix/"
+      - "traefik.docker.network=matrix-server_web"
+      - "traefik.port=8008"
+    networks:
+      - web
+
+  # Matrix web client: riot
+  matrix-webclient:
+    build: "./build/riot/"
+    restart: always
+    env_file: .env
+    volumes:
+      - "./data/riot:/data/"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=matrix-webclient"
+      - "traefik.frontend.rule=Host:$MATRIX_CLIENT_URL"
+      - "traefik.docker.network=matrix-server_web"
+      - "traefik.port=8080"
+    networks:
+      - web
+
+  # Matrix voice and video support with coturn
+  matrix-turn:
+    build: "./build/coturn/"
+    restart: always
+    env_file: .env
+    expose:
+      - "3478"
+      - "3479"
+      - "5349"
+      - "5350"
+    ports:
+      - "3478:3478"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:$MATRIX_TURN_URL"
+    volumes:
+      - "./data/synapse:/data"

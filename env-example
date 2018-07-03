@@ -1,0 +1,21 @@
+# Matrix server main configuration file
+#
+
+
+#
+# Rename to `.env` and adjust to make it work!
+#
+
+
+# A freely choosable name for this server and service
+NAME=Matrix
+
+# Email address of the server's administrator
+ADMIN_EMAIL=admin@YOURDOMAIN.TLD
+
+# The domain of the matrix server (Synapse)
+MATRIX_SERVER_URL=YOURDOMAIN.TLD
+
+# The domain of the matrix web client (Riot)
+# Can be the same as MATRIX_SERVER_URL
+MATRIX_CLIENT_URL=chat.YOURDOMAIN.TLD
